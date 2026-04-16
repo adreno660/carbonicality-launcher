@@ -1,0 +1,53 @@
+name: Patch ownsMinecraft in all tags
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Patch all tags
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          FILE="launcher/minecraft/auth/MinecraftAccount.h"
+
+          for tag in $(git tag); do
+            echo "Processing $tag..."
+            git checkout "$tag" 2>/dev/null
+
+            if [ ! -f "$FILE" ]; then
+              echo "Skipping $tag (file not found)"
+              continue
+            fi
+
+            if grep -q 'return true' "$FILE"; then
+              echo "Skipping $tag (already patched)"
+              continue
+            fi
+
+            sed -i 's/bool ownsMinecraft() const {[^}]*}/bool ownsMinecraft() const { return true; }/g' "$FILE"
+
+            if ! grep -q 'return true' "$FILE"; then
+              echo "⚠️  WARNING: patch may have failed on $tag, skipping"
+              continue
+            fi
+
+            git add "$FILE"
+            git commit -m "fix: ownsMinecraft always returns true"
+            git tag -f "$tag"
+            git push origin "$tag" --force
+          done
+
+          git checkout develop
