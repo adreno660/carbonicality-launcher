@@ -1,0 +1,61 @@
+name: Verify ownsMinecraft patch in all tags
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Check all tags
+        run: |
+          FILE="launcher/minecraft/auth/MinecraftAccount.h"
+
+          PASS=0
+          FAIL=0
+          SKIP=0
+
+          for tag in $(git tag); do
+            git checkout "$tag" 2>/dev/null
+
+            if [ ! -f "$FILE" ]; then
+              echo "⏭️  SKIP $tag (file not found)"
+              SKIP=$((SKIP + 1))
+              continue
+            fi
+
+            # Check the function exists at all on this tag
+            if ! grep -q 'ownsMinecraft' "$FILE"; then
+              echo "⏭️  SKIP $tag (function not found)"
+              SKIP=$((SKIP + 1))
+              continue
+            fi
+
+            if grep -q 'bool ownsMinecraft() const { return true; }' "$FILE"; then
+              echo "✅ PASS $tag"
+              PASS=$((PASS + 1))
+            else
+              echo "❌ FAIL $tag"
+              echo "     $(grep 'ownsMinecraft' $FILE)"
+              FAIL=$((FAIL + 1))
+            fi
+          done
+
+          echo ""
+          echo "================================"
+          echo "✅ Passed: $PASS"
+          echo "❌ Failed: $FAIL"
+          echo "⏭️  Skipped: $SKIP"
+          echo "================================"
+
+          if [ $FAIL -gt 0 ]; then
+            exit 1
+          fi
