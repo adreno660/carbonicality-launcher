@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - main
+      - develop
     paths:
       - .github/workflows/linux.yml
 
@@ -28,12 +28,12 @@ jobs:
 
           FILE=".github/workflows/linux.yml"
 
-          for branch in $(git branch -r | grep -v '\->' | grep -v 'main' | sed 's/origin\///'); do
+          for branch in $(git branch -r | grep -v '\->' | grep -v 'develop' | sed 's/origin\///'); do
             echo "Syncing to $branch..."
             git checkout "$branch"
-            git checkout main -- "$FILE"
+            git checkout develop -- "$FILE"
             git add "$FILE"
             git diff --cached --quiet && continue
-            git commit -m "ci: sync linux.yml from main"
+            git commit -m "ci: sync linux.yml from develop"
             git push origin "$branch"
           done
