@@ -1,0 +1,27 @@
+name: Trigger build on all tags
+
+on:
+  workflow_dispatch:
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  trigger:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Trigger build for all tags
+        run: |
+          for tag in $(git tag); do
+            echo "Triggering build for $tag..."
+            gh workflow run build.yml --ref "$tag"
+            sleep 2  # avoid hammering the API
+          done
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
