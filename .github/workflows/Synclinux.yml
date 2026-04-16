@@ -1,0 +1,38 @@
+name: Sync linux.yml to all branches
+
+on:
+  push:
+    branches:
+      - main  # change this if your default branch is different
+    paths:
+      - .github/workflows/linux.yml
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Sync to all branches
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          FILE=".github/workflows/linux.yml"
+
+          for branch in $(git branch -r | grep -v '\->' | grep -v 'main' | sed 's/origin\///'); do
+            echo "Syncing to $branch..."
+            git checkout "$branch"
+            git checkout main -- "$FILE"
+            git add "$FILE"
+            git diff --cached --quiet && continue  # skip if no changes
+            git commit -m "ci: sync linux.yml from main"
+            git push origin "$branch"
+          done
