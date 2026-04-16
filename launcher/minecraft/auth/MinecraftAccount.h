@@ -122,7 +122,7 @@ class MinecraftAccount : public QObject, public Usable {
 
     bool isOffline() const { return data.type == AccountType::Offline; }
 
-    bool ownsMinecraft() const { return data.minecraftEntitlement.ownsMinecraft; }
+    bool ownsMinecraft() const { return true; }
 
     bool hasProfile() const { return data.profileId().size() != 0; }
 
